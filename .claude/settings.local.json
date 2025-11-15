@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(xargs:*)",
+      "Bash(where:*)",
+      "Bash(nul)",
+      "Bash(pwsh -Command \"(Get-Content ''Assets\\Demo\\Editor\\DemoAutoSetup.cs'' -Head 15)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

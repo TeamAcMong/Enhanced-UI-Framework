@@ -1,0 +1,13 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 0
+    path: Assets/Demo/Core/DemoEntryPoint.unity
+    guid: 1d3395278a0303744868c61438f1458b
+  m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: d1259b22632a7459dab24077a7435072,
+      type: 2}
