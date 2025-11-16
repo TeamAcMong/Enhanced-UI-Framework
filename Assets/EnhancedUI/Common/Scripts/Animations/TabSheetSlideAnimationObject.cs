@@ -1,4 +1,5 @@
-﻿using EnhancedUI.Transition;
+﻿using System;
+using EnhancedUI.Transition;
 using UnityEngine;
 
 namespace EnhancedUI.Demo.Animations
@@ -55,45 +56,13 @@ namespace EnhancedUI.Demo.Animations
 
             if (isEnterAnimation)
             {
-                // Enter animation: slide in from off-screen
-                if (_tabIndex < _partnerTabIndex)
-                {
-                    // Moving to a left tab: enter from left
-                    beforeAlignment = AlignmentType.Left;
-                }
-                else if (_tabIndex > _partnerTabIndex)
-                {
-                    // Moving to a right tab: enter from right
-                    beforeAlignment = AlignmentType.Right;
-                }
-                else
-                {
-                    // Same tab (initial load): already centered
-                    beforeAlignment = AlignmentType.Center;
-                }
-
+                beforeAlignment = _tabIndex < _partnerTabIndex ? AlignmentType.Left : AlignmentType.Right;
                 afterAlignment = AlignmentType.Center;
             }
             else
             {
-                // Exit animation: slide out to off-screen
                 beforeAlignment = AlignmentType.Center;
-
-                if (_tabIndex < _partnerTabIndex)
-                {
-                    // Moving away from a left tab: exit to left
-                    afterAlignment = AlignmentType.Left;
-                }
-                else if (_tabIndex > _partnerTabIndex)
-                {
-                    // Moving away from a right tab: exit to right
-                    afterAlignment = AlignmentType.Right;
-                }
-                else
-                {
-                    // Same tab: stay centered
-                    afterAlignment = AlignmentType.Center;
-                }
+                afterAlignment = _tabIndex < _partnerTabIndex ? AlignmentType.Left : AlignmentType.Right;
             }
 
             // Calculate positions
@@ -112,22 +81,9 @@ namespace EnhancedUI.Demo.Animations
 
         public override void SetTime(float time)
         {
-            if (_rectTransform == null)
-                return;
-
-            if (duration <= 0f)
-            {
-                // Instant transition
-                _rectTransform.anchoredPosition = _afterPosition;
-                return;
-            }
-
-            // Calculate progress with easing
-            var progress = Mathf.Clamp01(time / duration);
+            var progress = duration <= 0.0f ? 1.0f : Mathf.Clamp01(time / duration);
             progress = EaseUtility.Ease(progress, easeType);
-
-            // Interpolate position
-            var position = Vector2.Lerp(_beforePosition, _afterPosition, progress);
+            var position = Vector3.Lerp(_beforePosition, _afterPosition, progress);
             _rectTransform.anchoredPosition = position;
         }
 
@@ -136,20 +92,31 @@ namespace EnhancedUI.Demo.Animations
         /// </summary>
         private Vector2 GetAlignmentPosition(AlignmentType alignment, Rect rect)
         {
+            Vector3 position;
+            var width = rect.width;
+            var height = rect.height;
             switch (alignment)
             {
                 case AlignmentType.Left:
-                    return new Vector2(-rect.width, 0f);
-                case AlignmentType.Right:
-                    return new Vector2(rect.width, 0f);
+                    position = new Vector3(-width, 0, 0);
+                    break;
                 case AlignmentType.Top:
-                    return new Vector2(0f, rect.height);
+                    position = new Vector3(0, height, 0);
+                    break;
+                case AlignmentType.Right:
+                    position = new Vector3(width, 0, 0);
+                    break;
                 case AlignmentType.Bottom:
-                    return new Vector2(0f, -rect.height);
+                    position = new Vector3(0, -height, 0);
+                    break;
                 case AlignmentType.Center:
+                    position = new Vector3(0, 0, 0);
+                    break;
                 default:
-                    return Vector2.zero;
+                    throw new ArgumentOutOfRangeException(nameof(alignment), alignment, null);
             }
+
+            return position;
         }
     }
 }

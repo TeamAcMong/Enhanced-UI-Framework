@@ -30,11 +30,6 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: d28db3a54e489ad40834540caf2d2175
-    m_Address: tex_icon_coin
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d7fea536eba249e4a998f37f885465b4
     m_Address: HomeSheet
     m_ReadOnly: 0
