@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c0473119cb5451e9f673dbbed479f19, type: 3}
   m_Name: TabSheetSlideAnimationOut
   m_EditorClassIdentifier: Assembly-CSharp::EnhancedUI.Demo.Animations.TabSheetSlideAnimationObject
-  duration: 0.3
+  duration: 0.2
   easeType: 2
-  isEnterAnimation: 1
+  isEnterAnimation: 0
