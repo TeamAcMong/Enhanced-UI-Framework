@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using EnhancedUI.Editor.Utilities;
@@ -14,6 +15,17 @@ namespace EnhancedUI.Editor.Core
     {
         private bool _showTransitionSettings = true;
         private bool _showRuntimeInfo = false;
+        private bool _showDerivedProperties = true;
+
+        // Base class property names to exclude from derived class section
+        private static readonly HashSet<string> BaseClassPropertyNames = new HashSet<string>
+        {
+            "m_Script",
+            "pushEnterAnimationContainer",
+            "pushExitAnimationContainer",
+            "popEnterAnimationContainer",
+            "popExitAnimationContainer"
+        };
 
         public override void OnInspectorGUI()
         {
@@ -26,6 +38,9 @@ namespace EnhancedUI.Editor.Core
             DrawHeader(screen);
 
             GUILayout.Space(10);
+
+            // Derived class properties (shown first for visibility)
+            DrawDerivedClassProperties();
 
             // Runtime information (only in play mode)
             if (Application.isPlaying)
@@ -43,6 +58,87 @@ namespace EnhancedUI.Editor.Core
             DrawQuickActions(screen);
 
             serializedObject.ApplyModifiedProperties();
+        }
+
+        /// <summary>
+        /// Draws serialized properties from derived classes that are not part of the base Screen class.
+        /// This allows custom properties in inherited classes to be visible in the inspector.
+        /// </summary>
+        protected virtual void DrawDerivedClassProperties()
+        {
+            // Collect all properties that are not from base class
+            var derivedProperties = new List<SerializedProperty>();
+            var iterator = serializedObject.GetIterator();
+            bool enterChildren = true;
+
+            while (iterator.NextVisible(enterChildren))
+            {
+                enterChildren = false;
+
+                // Skip base class properties
+                if (BaseClassPropertyNames.Contains(iterator.name))
+                    continue;
+
+                derivedProperties.Add(iterator.Copy());
+            }
+
+            // Only draw section if there are derived properties
+            if (derivedProperties.Count == 0)
+                return;
+
+            _showDerivedProperties = EnhancedUIEditorStyles.DrawSectionHeader(
+                "🎯 Implementation Properties",
+                _showDerivedProperties
+            );
+
+            if (!_showDerivedProperties)
+            {
+                GUILayout.Space(10);
+                return;
+            }
+
+            GUILayout.Space(5);
+
+            using (new EditorGUILayout.VerticalScope(EnhancedUIEditorStyles.SectionBox))
+            {
+                // Show helpful info about this section
+                var targetTypeName = target.GetType().Name;
+                var baseTypeName = GetBaseScreenTypeName();
+
+                EditorGUILayout.HelpBox(
+                    $"Properties defined in '{targetTypeName}' (extends {baseTypeName})",
+                    MessageType.None
+                );
+
+                GUILayout.Space(8);
+
+                // Draw each derived property
+                foreach (var property in derivedProperties)
+                {
+                    EditorGUILayout.PropertyField(property, true);
+                    GUILayout.Space(2);
+                }
+            }
+
+            GUILayout.Space(10);
+        }
+
+        /// <summary>
+        /// Gets the immediate base screen type name (Page, Modal, Sheet, or Screen)
+        /// </summary>
+        private string GetBaseScreenTypeName()
+        {
+            var targetType = target.GetType();
+            var baseType = targetType.BaseType;
+
+            while (baseType != null && baseType != typeof(Screen))
+            {
+                if (baseType == typeof(Page) || baseType == typeof(Modal) || baseType == typeof(Sheet))
+                    return baseType.Name;
+                baseType = baseType.BaseType;
+            }
+
+            return "Screen";
         }
 
         protected virtual void DrawHeader(Screen screen)
