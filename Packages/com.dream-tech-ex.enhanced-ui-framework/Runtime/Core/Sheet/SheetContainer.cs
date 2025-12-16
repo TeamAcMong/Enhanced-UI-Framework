@@ -90,6 +90,11 @@ namespace EnhancedUI
             return InstancesByTransform.TryGetValue(transform, out var container) ? container : null;
         }
 
+        public void SetAssetLoader(IAssetLoader assetLoader)
+        {
+            _assetLoader = assetLoader;
+        }
+
         /// <summary>
         /// Register a sheet (load but don't show)
         /// </summary>
