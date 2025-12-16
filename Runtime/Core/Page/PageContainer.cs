@@ -113,6 +113,11 @@ namespace EnhancedUI
         {
             return InstancesByTransform.TryGetValue(transform, out var container) ? container : null;
         }
+        
+        public void SetAssetLoader(IAssetLoader assetLoader)
+        {
+            _assetLoader = assetLoader;
+        }
 
         /// <summary>
         /// Push a new page onto the stack
