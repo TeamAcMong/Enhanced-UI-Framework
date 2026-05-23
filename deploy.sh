@@ -1,8 +1,8 @@
 #!/bin/sh -ex
 
-# Addressable Manager - UPM Deployment Script
-# This script creates a clean UPM branch with only the package contents
-# Usage: ./deploy.sh --semver "1.0.3"
+# Enhanced UI Framework — UPM Deployment Script
+# Publishes Packages/com.dream-tech-ex.enhanced-ui-framework/ as a git-subtree tag.
+# Usage: ./deploy.sh --semver "1.1.0"
 
 # Parse arguments
 while [ $# -gt 0 ]; do
@@ -64,12 +64,12 @@ echo "================================"
 echo "✅ Deployment Complete!"
 echo ""
 echo "Installation URL for users:"
-echo "https://github.com/YOUR_USERNAME/Enhanced-UI-Framework.git#$SEMVER"
+echo "https://github.com/TeamAcMong/Enhanced-UI-Framework.git#$SEMVER"
 echo ""
 echo "Or in manifest.json:"
 echo "{"
 echo "  \"dependencies\": {"
-echo "    \"com.dream-tech-ex.enhanced-ui-framework\": \"https://github.com/YOUR_USERNAME/Enhanced-UI-Framework#$SEMVER\""
+echo "    \"com.dreamtechex.enhanced-ui-framework\": \"https://github.com/TeamAcMong/Enhanced-UI-Framework.git#$SEMVER\""
 echo "  }"
 echo "}"
 echo "================================"

@@ -45,16 +45,31 @@ A comprehensive, production-ready UI navigation framework for Unity mobile games
 
 ## Installation
 
-### Via Package Manager (Git URL)
-1. Open Window > Package Manager
-2. Click "+" > Add package from git URL
-3. Enter: `https://github.com/yourstudio/enhanced-ui-framework.git`
+### Via Package Manager (Git URL — recommended)
+
+Open **Window → Package Manager → ＋ → Add package from git URL**, then paste:
+
+```
+https://github.com/TeamAcMong/Enhanced-UI-Framework.git#1.1.0
+```
+
+Or pin via `Packages/manifest.json`:
+
+```json
+{
+  "dependencies": {
+    "com.dreamtechex.enhanced-ui-framework": "https://github.com/TeamAcMong/Enhanced-UI-Framework.git#1.1.0"
+  }
+}
+```
+
+Tags are produced by `deploy.sh` using a git-subtree split, so each tag contains only the package contents (~KBs, not MBs). See [DEPLOY_UPM_SUBTREE.md](../../DEPLOY_UPM_SUBTREE.md) for the publishing flow.
 
 ### Via Package Manager (Local)
 1. Clone this repository
 2. Open Window > Package Manager
 3. Click "+" > Add package from disk
-4. Select `package.json` in the cloned folder
+4. Select `package.json` inside `Packages/com.dream-tech-ex.enhanced-ui-framework/`
 
 ## Quick Start
 
@@ -112,26 +127,26 @@ await pageContainer.Pop(playAnimation: true);
 
 ## Samples
 
-Import samples via Package Manager:
+Import the bundled sample via Package Manager:
 1. Open Window > Package Manager
 2. Select "Enhanced UI Framework"
 3. Expand "Samples" section
-4. Import desired samples
+4. Import **Mobile Game — Complete**
+
+The sample lands in `Assets/Samples/Enhanced UI Framework/<version>/MobileGameComplete/`. Open `Scenes/DemoScene.unity` and press Play — `DemoBootstrap` pushes `HomeContainerPage` with four tab sheets and wires `NavigationManager` to the global UI.
 
 ## Requirements
 
-- Unity 2021.3 or later
-- TextMeshPro (optional, for samples)
-- Addressables 1.17.4+ (optional, for addressable asset loading)
-- UniTask 2.0.0+ (optional, for async/await support)
+- Unity **2022.3** or later (tested on Unity 6)
+- UniTask (declared as a hard dependency in `package.json` — Unity will pull it automatically)
+- TextMeshPro (optional, only required by the bundled sample)
+- Addressables 1.17.4+ (optional, only if you opt into `AddressableAssetLoader`)
 
 ## License
 
-MIT License - see LICENSE.md
+MIT License — see [LICENSE.md](LICENSE.md).
 
 ## Support
 
-- Documentation: [Link to docs]
-- Issues: [Link to issue tracker]
-- Forum: [Link to forum]
-- Email: contact@yourstudio.com
+- Issues: <https://github.com/TeamAcMong/Enhanced-UI-Framework/issues>
+- Maintainer: **DreamTech**
