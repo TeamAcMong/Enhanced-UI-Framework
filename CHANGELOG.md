@@ -2,6 +2,27 @@
 
 All notable changes to Enhanced UI Framework will be documented in this file.
 
+## [1.1.0] - 2026-05-23
+
+### Added
+- `EnhancedUI.ITabContent` is now part of the framework (`Runtime/Core/Sheet/ITabContent.cs`). Tab-aware transition animations can read `TabIndex` from any sheet to decide slide direction without depending on demo code.
+- Bundled sample **"Mobile Game — Complete"** under `Samples~/MobileGameComplete` (importable via Package Manager). End-to-end example: lobby with bottom-tab sheets, modal settings, gameplay/level-selection pages, full MVP wiring.
+- Documentation: `Documentation~/MVP_Pattern.md`, `Documentation~/EditorSetup.md`.
+
+### Changed
+- `package.json` now declares `com.cysharp.unitask` as a hard dependency (was implicit). Minimum Unity bumped to **2022.3** to match the rest of the toolchain.
+- Demo and sample assets moved out of `Assets/` and into the standard UPM `Samples~/` folder. Import the sample from **Package Manager → Enhanced UI Framework → Samples**.
+- Author field standardised to **DreamTech**.
+
+### Removed
+- Stale status / session markdown files (`FINAL_STATUS.md`, `IMPLEMENTATION_*`, `SESSION_SUMMARY.md`, `README_COMPLETE.md`, `EDITOR_TOOLS_SUMMARY.md`, `FINAL_SUMMARY.md`).
+- Duplicated `SafeAreaAdapter` / `OrientationManager` from the demo (the framework versions in `Runtime/Platform/` are the source of truth).
+- Scratch `Assets/Scripts/UI/` template files (`MyScreen`, `Test`, `SimpleTransition.asset`).
+
+### Migration
+- Any code that referenced `EnhancedUI.Demo.ITabContent` should import `EnhancedUI` instead — the interface signature is unchanged.
+- Demo scenes are no longer auto-imported; import the **Mobile Game — Complete** sample to restore the previous play-mode experience.
+
 ## [1.0.0] - 2024-01-XX
 
 ### Added
