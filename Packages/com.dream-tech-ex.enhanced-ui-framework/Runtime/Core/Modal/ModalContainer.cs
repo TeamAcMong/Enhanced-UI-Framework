@@ -28,6 +28,7 @@ namespace EnhancedUI
         private readonly Dictionary<string, Modal> _modals = new Dictionary<string, Modal>();
         private readonly Dictionary<string, ModalBackdrop> _backdrops = new Dictionary<string, ModalBackdrop>();
         private readonly Dictionary<string, AssetLoadHandle<GameObject>> _assetLoadHandles = new Dictionary<string, AssetLoadHandle<GameObject>>();
+        private readonly Dictionary<string, IAssetLoader> _loadersByModal = new Dictionary<string, IAssetLoader>();
         private readonly Dictionary<string, AssetLoadHandle<GameObject>> _preloadedHandles = new Dictionary<string, AssetLoadHandle<GameObject>>();
 
         private ContainerLayerManager _layerManager;
@@ -75,9 +76,10 @@ namespace EnhancedUI
                 }
             }
 
-            foreach (var handle in _assetLoadHandles.Values)
+            foreach (var kvp in _assetLoadHandles)
             {
-                _assetLoader.Release(handle);
+                var releaser = _loadersByModal.TryGetValue(kvp.Key, out var loader) ? loader : _assetLoader;
+                releaser.Release(kvp.Value);
             }
 
             foreach (var handle in _preloadedHandles.Values)
@@ -89,6 +91,7 @@ namespace EnhancedUI
             _orderedModalIds.Clear();
             _backdrops.Clear();
             _assetLoadHandles.Clear();
+            _loadersByModal.Clear();
             _preloadedHandles.Clear();
         }
 
@@ -128,7 +131,8 @@ namespace EnhancedUI
             _isInTransition = true;
             SetInteractionEnabled(false);
 
-            // Load modal
+            // Load modal. Per-call options.Loader wins over the container default.
+            var activeLoader = options.Loader ?? _assetLoader;
             AssetLoadHandle<GameObject> assetHandle = null;
             if (_preloadedHandles.TryGetValue(resourceKey, out var preloadedHandle))
             {
@@ -138,8 +142,8 @@ namespace EnhancedUI
             else
             {
                 assetHandle = options.LoadAsync
-                    ? _assetLoader.LoadAsync<GameObject>(resourceKey)
-                    : _assetLoader.Load<GameObject>(resourceKey);
+                    ? activeLoader.LoadAsync<GameObject>(resourceKey)
+                    : activeLoader.Load<GameObject>(resourceKey);
 
                 yield return assetHandle;
             }
@@ -175,6 +179,7 @@ namespace EnhancedUI
 
             _modals[modalId] = modal;
             _assetLoadHandles[modalId] = assetHandle;
+            _loadersByModal[modalId] = activeLoader;
 
             // Create backdrop
             ModalBackdrop backdrop = null;
@@ -390,8 +395,10 @@ namespace EnhancedUI
 
             if (_assetLoadHandles.TryGetValue(exitingModalId, out var assetHandle))
             {
-                _assetLoader.Release(assetHandle);
+                var releaser = _loadersByModal.TryGetValue(exitingModalId, out var loader) ? loader : _assetLoader;
+                releaser.Release(assetHandle);
                 _assetLoadHandles.Remove(exitingModalId);
+                _loadersByModal.Remove(exitingModalId);
             }
 
             _modals.Remove(exitingModalId);

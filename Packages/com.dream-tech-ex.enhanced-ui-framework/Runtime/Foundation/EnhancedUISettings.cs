@@ -34,28 +34,28 @@ namespace EnhancedUI
             }
         }
 
-        [Header("Asset Loading")]
+        // NOTE: [Header(...)] attributes are intentionally omitted — the custom inspector
+        // (EnhancedUI.Editor.Core.EnhancedUISettingsEditor) provides its own grouped layout.
+        // Re-adding [Header] here would render a duplicate bold sub-label inside each section.
+
         [Tooltip("Default asset loader type (Resources, Addressables, or custom)")]
         public AssetLoaderType assetLoaderType = AssetLoaderType.Addressables;
 
         [Tooltip("Enable preloading system for faster transitions")]
         public bool enablePreloading = true;
 
-        [Header("Interaction Control")]
         [Tooltip("Allow user interaction during screen transitions")]
         public bool enableInteractionInTransition = false;
 
         [Tooltip("Control all containers' interaction, not just the transitioning one")]
         public bool controlInteractionOfAllContainers = true;
 
-        [Header("Lifecycle")]
         [Tooltip("Call Cleanup() when screen GameObject is destroyed")]
         public bool callCleanupWhenDestroy = true;
 
         [Tooltip("Enable async lifecycle methods (requires UniTask or C# Task support)")]
         public bool enableAsyncLifecycle = true;
 
-        [Header("Memory Management")]
         [Tooltip("Enable object pooling for frequently used screens")]
         public bool enableObjectPooling = true;
 
@@ -68,7 +68,6 @@ namespace EnhancedUI
         [Tooltip("Pool configuration per screen (key = screen resource key, value = pool size)")]
         public List<PoolConfig> poolConfigurations = new List<PoolConfig>();
 
-        [Header("Mobile Features")]
         [Tooltip("Enable safe area adaptation for notch/home indicator")]
         public bool enableSafeArea = true;
 
@@ -78,7 +77,6 @@ namespace EnhancedUI
         [Tooltip("Enable orientation management")]
         public bool enableOrientationManagement = false;
 
-        [Header("Performance")]
         [Tooltip("Target frame rate during transitions (0 = no change)")]
         public int targetFrameRateDuringTransition = 0;
 
@@ -88,7 +86,6 @@ namespace EnhancedUI
         [Tooltip("Reduce allocations during transitions")]
         public bool optimizeTransitionPerformance = true;
 
-        [Header("Debug")]
         [Tooltip("Enable detailed logging")]
         public bool enableDebugLog = false;
 
@@ -101,7 +98,6 @@ namespace EnhancedUI
         [Tooltip("Show performance warnings")]
         public bool showPerformanceWarnings = true;
 
-        [Header("Default Transitions")]
         public TransitionSettings pageTransitions = new TransitionSettings
         {
             pushEnterDuration = 0.3f,

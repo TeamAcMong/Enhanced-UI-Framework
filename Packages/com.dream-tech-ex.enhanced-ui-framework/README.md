@@ -1,59 +1,30 @@
 # Enhanced UI Framework
 
-A comprehensive, production-ready UI navigation framework for Unity mobile games.
+A mobile-optimized UI navigation framework for Unity.
+Container–Screen architecture with **Page** (stack), **Modal** (overlay) and **Sheet** (tabs); rich lifecycle hooks, partner-aware transitions, pluggable asset loaders, object pooling, safe-area + back-button + orientation handling, and an optional MVP layer. UniTask-powered async with a coroutine fallback.
 
-## Features
+> **Minimum Unity**: 2022.3 LTS — tested up to Unity 6.
 
-### Core Navigation System
-- **Page Container**: Stack-based navigation for full-screen pages
-- **Modal Container**: Overlay dialogs with multiple backdrop strategies
-- **Sheet Container**: Tab-like navigation without history
+## Why this framework?
 
-### Rich Lifecycle Management
-- 10+ lifecycle events per screen type (Initialize, WillEnter, DidEnter, WillExit, DidExit, Cleanup, etc.)
-- External lifecycle registration with priority
-- Inline lambda registration support
-- Both coroutine and async/await support
+- **Three container types** for the three navigation patterns you actually need (stack / overlay / tabs).
+- **10 lifecycle events per screen** so you never have to guess where to put init/cleanup/animation hooks.
+- **Pluggable asset loaders**: Resources, Addressables, Remote CDN, or your own.
+- **Mobile out-of-the-box**: safe-area adapter, Android back button, orientation tracking, performance monitor.
+- **MVP layer (optional)** when screens grow large enough to need it.
+- **Editor tooling**: Setup Wizard, Container Validator, Health Check, Screen Generator, Performance Analyzer.
 
-### Flexible Transition System
-- ScriptableObject-based animations (reusable across screens)
-- MonoBehaviour-based animations for complex scenarios
-- Timeline integration support
-- Partner screen awareness for contextual transitions
-- Regex pattern matching for per-screen animation overrides
+## Install
 
-### Advanced Asset Management
-- Pluggable asset loader (Resources, Addressables, Remote CDN)
-- Preloading API for instant transitions
-- Object pooling for frequently used screens
-- Smart caching with LRU policy
-- Memory budget management
+### Via Git URL (recommended)
 
-### Mobile-Optimized
-- ✅ Safe Area auto-adaptation (iOS notch, Android gesture bar)
-- ✅ Android back button handling
-- ✅ Orientation management
-- ✅ Performance optimizations (reduced GC, frame rate control)
-- ✅ Memory pressure monitoring
-
-### Developer Experience
-- Optional MVP (Model-View-Presenter) framework
-- Code generation tools (Screen templates, Presenter boilerplate)
-- Debug tools (Lifecycle visualizer, Screen hierarchy, Performance analyzer)
-- Comprehensive validation (Runtime, Editor, Build-time)
-- 10 sample projects from basic to advanced
-
-## Installation
-
-### Via Package Manager (Git URL — recommended)
-
-Open **Window → Package Manager → ＋ → Add package from git URL**, then paste:
+In Unity: **Window → Package Manager → ＋ → Add package from git URL** and paste:
 
 ```
 https://github.com/TeamAcMong/Enhanced-UI-Framework.git#1.1.0
 ```
 
-Or pin via `Packages/manifest.json`:
+Or pin in `Packages/manifest.json`:
 
 ```json
 {
@@ -63,88 +34,145 @@ Or pin via `Packages/manifest.json`:
 }
 ```
 
-Tags are produced by `deploy.sh` using a git-subtree split, so each tag contains only the package contents (~KBs, not MBs). See [DEPLOY_UPM_SUBTREE.md](../../DEPLOY_UPM_SUBTREE.md) for the publishing flow.
+Tags are produced by `deploy.sh` using a git-subtree split, so each tag ships only the package contents (~KB, not the whole Unity project). See [DEPLOY_UPM_SUBTREE.md](../../DEPLOY_UPM_SUBTREE.md) for the publishing flow.
 
-### Via Package Manager (Local)
-1. Clone this repository
-2. Open Window > Package Manager
-3. Click "+" > Add package from disk
-4. Select `package.json` inside `Packages/com.dream-tech-ex.enhanced-ui-framework/`
+### Via local package
 
-## Quick Start
+1. Clone this repository.
+2. **Window → Package Manager → ＋ → Add package from disk**.
+3. Pick `Packages/com.dream-tech-ex.enhanced-ui-framework/package.json`.
 
-### 1. Setup
-```csharp
-// Create UI Manager in scene
-GameObject uiRoot = new GameObject("UIRoot");
-// Containers will auto-create on first use
-```
+## Quick start
 
-### 2. Create a Screen
+### 1. Run the Setup Wizard
+
+**Tools → Enhanced UI → Setup Wizard** creates:
+
+- `EnhancedUISettings` asset under `Assets/Resources/`
+- A Canvas root with `SafeArea`, `PageContainer`, `ModalContainer`, `SheetContainer`
+- `BackButtonHandler` (mobile)
+
+If you'd rather wire it by hand, see [EditorSetup.md](Documentation~/EditorSetup.md).
+
+### 2. Write a screen
+
 ```csharp
 using EnhancedUI;
-using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 public class HomePage : Page
 {
-    public override void Initialize()
+    public override async UniTask Initialize()
     {
-        Debug.Log("Home Page Initialized");
+        // bind view-model, subscribe to events…
+        await base.Initialize();
     }
 
-    public override void DidPushEnter()
-    {
-        Debug.Log("Home Page Entered");
-    }
+    public override void DidPushEnter() { /* page is on-screen */ }
+
+    public override void WillPopExit() { /* save state, kill tweens */ }
 }
 ```
 
+Save the prefab so the asset loader can find it — see [AssetLoading.md](Documentation~/AssetLoading.md):
+
+| Loader | Where the prefab lives | Key you push with |
+|---|---|---|
+| `Resources` (default-friendly) | `Assets/.../Resources/Pages/HomePage.prefab` | `"Pages/HomePage"` |
+| `Addressables` | anywhere, marked Addressable with address `HomePage` | `"HomePage"` |
+| `Custom` | wherever your loader resolves | whatever your loader expects |
+
 ### 3. Navigate
+
 ```csharp
-// Show a page
-var pageContainer = PageContainer.Find("Main");
-await pageContainer.Push<HomePage>("Prefabs/HomePage", playAnimation: true);
+var pages = PageContainer.Find("Main");
 
-// Show a modal
-var modalContainer = ModalContainer.Find("Main");
-await modalContainer.Push<SettingsModal>("Prefabs/SettingsModal", playAnimation: true);
+// simplest push
+await pages.Push<HomePage>("Pages/HomePage");
 
-// Go back
-await pageContainer.Pop(playAnimation: true);
+// with options
+await pages.Push<HomePage>("Pages/HomePage", new WindowOptions
+{
+    LoadAsync     = true,
+    PlayAnimation = true,
+    Stack         = true,
+    OnLoaded      = page => /* page is loaded, not yet entered */,
+    Data          = new { fromTutorial = true },
+});
+
+// go back
+await pages.Pop();
 ```
+
+Full API surface lives in [Architecture.md](Documentation~/Architecture.md).
+
+## Try the sample
+
+Window → Package Manager → **Enhanced UI Framework** → Samples → **Mobile Game — Complete** → Import.
+
+Lands at `Assets/Samples/Enhanced UI Framework/<version>/MobileGameComplete/`. Open `Scenes/DemoScene.unity` and press Play — `DemoBootstrap` pushes the home container with four tab sheets. See [the sample README](Samples~/MobileGameComplete/README.md) for the loader requirements and how to switch between Resources / Addressables / Custom.
 
 ## Documentation
 
-- [Getting Started](Documentation~/GettingStarted.md)
-- [Architecture Overview](Documentation~/Architecture.md)
-- [Lifecycle System](Documentation~/Lifecycle.md)
-- [Transition Animations](Documentation~/Transitions.md)
-- [Asset Management](Documentation~/AssetManagement.md)
-- [MVP Pattern Guide](Documentation~/MVP_Pattern.md)
-- [Mobile Optimization](Documentation~/MobileOptimization.md)
-- [API Reference](Documentation~/API_Reference.md)
-- [Migration from UnityScreenNavigator](Documentation~/Migration_From_USN.md)
-
-## Samples
-
-Import the bundled sample via Package Manager:
-1. Open Window > Package Manager
-2. Select "Enhanced UI Framework"
-3. Expand "Samples" section
-4. Import **Mobile Game — Complete**
-
-The sample lands in `Assets/Samples/Enhanced UI Framework/<version>/MobileGameComplete/`. Open `Scenes/DemoScene.unity` and press Play — `DemoBootstrap` pushes `HomeContainerPage` with four tab sheets and wires `NavigationManager` to the global UI.
+| Doc | What's in it |
+|---|---|
+| [Getting Started](Documentation~/GettingStarted.md) | Setup, your first screen, your first transition |
+| [Architecture](Documentation~/Architecture.md) | Containers, screens, lifecycle, transitions, asset pipeline |
+| [Asset Loading](Documentation~/AssetLoading.md) | Resources vs Addressables vs Custom + how to switch |
+| [Settings Reference](Documentation~/Settings.md) | Every field on `EnhancedUISettings` |
+| [Editor Setup (Manual)](Documentation~/EditorSetup.md) | Hand-wire containers without the wizard |
+| [MVP Pattern](Documentation~/MVP_Pattern.md) | Structure complex screens with Model / View / Presenter |
 
 ## Requirements
 
-- Unity **2022.3** or later (tested on Unity 6)
-- UniTask (declared as a hard dependency in `package.json` — Unity will pull it automatically)
-- TextMeshPro (optional, only required by the bundled sample)
-- Addressables 1.17.4+ (optional, only if you opt into `AddressableAssetLoader`)
+| | Version | Notes |
+|---|---|---|
+| Unity | **2022.3** LTS+ | tested up to Unity 6 |
+| UniTask | 2.5.10+ | declared as a hard dependency on `com.cysharp.unitask` — resolved via the **OpenUPM scoped registry** (one-time project setup, see below). |
+| TextMeshPro | any | only needed by the bundled sample |
+| Addressables | 1.17.4+ | optional, only if `assetLoaderType = Addressables` |
+
+### Add the OpenUPM scoped registry (one-time)
+
+UniTask isn't on Unity's default registry, and UPM doesn't allow git URLs inside a *package's* own `dependencies` — so this package depends on UniTask via semver and resolves it through OpenUPM. Add this block to your project's `Packages/manifest.json` (alongside `dependencies`, not inside it):
+
+```json
+{
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.cysharp.unitask"
+      ]
+    }
+  ],
+  "dependencies": {
+    "com.dreamtechex.enhanced-ui-framework": "https://github.com/TeamAcMong/Enhanced-UI-Framework.git#1.1.0"
+  }
+}
+```
+
+Once the registry is registered, UPM will auto-resolve `com.cysharp.unitask` from OpenUPM the next time the package is added or refreshed. After that, `EUI_UNITASK_SUPPORT` activates automatically (via `versionDefines` in the asmdef) and the framework uses `UniTask`-based lifecycle. If UniTask is absent for any reason, the asmdef quietly falls back to `IEnumerator` coroutines — your code keeps compiling either way.
+
+## Editor menus
+
+| Menu | Use it for |
+|---|---|
+| `Tools/Enhanced UI/Setup Wizard` | One-click scene setup |
+| `Tools/Enhanced UI/Control Center` | Dashboard with status of every container |
+| `Tools/Enhanced UI/Settings` | Jump to `EnhancedUISettings` |
+| `Tools/Enhanced UI/Generate Screen` | Scaffold a Page / Modal / Sheet + optional MVP |
+| `Tools/Enhanced UI/Validate Setup` | Lint your containers |
+| `Tools/Enhanced UI/Analysis Tools/Health Check` | Auto-check for common misconfigurations |
+| `Tools/Enhanced UI/Analysis Tools/Performance Analyzer` | Frame-time + allocation profiler hook |
+| `Tools/Enhanced UI/Debug Tools/Event Tracker` | Live view of lifecycle events as they fire |
+| `Tools/Enhanced UI/Debug Tools/Transition Debugger` | Step through a transition frame-by-frame |
+| `GameObject/Enhanced UI/{Page,Modal,Sheet} Container` | Drop a container into the current Canvas |
 
 ## License
 
-MIT License — see [LICENSE.md](LICENSE.md).
+MIT — see [LICENSE.md](LICENSE.md).
 
 ## Support
 

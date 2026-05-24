@@ -96,9 +96,10 @@ public interface IAssetLoader
 ```
 
 **Built-in Loaders:**
-- ResourcesAssetLoader (default)
-- AddressableAssetLoader (requires Addressables package)
-- PreloadedAssetLoader (for editor/testing)
+- `ResourcesAssetLoader` — sync + async, always available
+- `AddressableAssetLoader` — only compiled when `com.unity.addressables` is present (`#if EUI_ADDRESSABLES_SUPPORT`)
+- `PreloadedAssetLoader` — accepts a `Dictionary<string, Object>`, ideal for editor / tests
+- `RemoteAssetLoader` — downloads from a base URL with disk cache, delegates to a fallback loader on miss
 
 **Extensions:**
 - ScreenPool: Object pooling for frequent screens
@@ -225,11 +226,15 @@ Rare Screens → Load on demand, destroy immediately
 ```csharp
 public class MyAssetLoader : IAssetLoader
 {
-    // Implement Load, LoadAsync, Release
+    public AssetLoadHandle<T> Load<T>(string key) where T : UnityEngine.Object { /* … */ }
+    public AssetLoadHandle<T> LoadAsync<T>(string key) where T : UnityEngine.Object { /* … */ }
+    public void Release(AssetLoadHandle handle) { /* … */ }
 }
 
 AssetLoaderProvider.SetCustomAssetLoader(new MyAssetLoader());
 ```
+
+See [AssetLoading.md](AssetLoading.md) for the full walkthrough.
 
 ### Custom Transition
 ```csharp
@@ -293,7 +298,8 @@ public class PopupPage : Page
 
 ## Next Steps
 
-- [Lifecycle System](Lifecycle.md) - Deep dive into events
-- [Transitions](Transitions.md) - Create custom animations
-- [Mobile Optimization](MobileOptimization.md) - Performance tuning
-- [MVP Pattern](MVP_Pattern.md) - Structure complex screens
+- [Getting Started](GettingStarted.md) — five-minute setup
+- [Asset Loading](AssetLoading.md) — three loaders + how to switch
+- [Settings Reference](Settings.md) — every inspector field
+- [MVP Pattern](MVP_Pattern.md) — structure complex screens
+- [Editor Setup (Manual)](EditorSetup.md) — wire it by hand

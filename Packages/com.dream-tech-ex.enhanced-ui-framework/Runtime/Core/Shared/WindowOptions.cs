@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using EnhancedUI.AssetManagement;
 
 namespace EnhancedUI
 {
@@ -22,6 +23,25 @@ namespace EnhancedUI
         /// Add to history stack (Page only)
         /// </summary>
         public bool Stack { get; set; } = true;
+
+        /// <summary>
+        /// Per-call asset loader override. When set, the container uses this
+        /// loader instead of its own (the one resolved from
+        /// <see cref="EnhancedUISettings"/> / <c>SetAssetLoader</c>).
+        /// Leave null to use the container's loader.
+        ///
+        /// Pair with the AddressableManager bridge
+        /// (<c>AddressableManagerScopeAdapter</c>) to push different screens
+        /// into different lifecycle scopes:
+        /// <code>
+        /// var session = ScopeManager.Instance.GetOrCreateScope("Session");
+        /// await pages.Push&lt;BattlePage&gt;("BattlePage", new WindowOptions
+        /// {
+        ///     Loader = new AddressableManagerScopeAdapter(session)
+        /// });
+        /// </code>
+        /// </summary>
+        public IAssetLoader Loader { get; set; }
 
         /// <summary>
         /// Callback after loading completes (before Initialize)

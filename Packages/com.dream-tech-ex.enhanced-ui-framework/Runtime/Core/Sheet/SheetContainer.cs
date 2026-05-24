@@ -23,6 +23,7 @@ namespace EnhancedUI
 
         private readonly Dictionary<string, Sheet> _sheets = new Dictionary<string, Sheet>();
         private readonly Dictionary<string, AssetLoadHandle<GameObject>> _assetLoadHandles = new Dictionary<string, AssetLoadHandle<GameObject>>();
+        private readonly Dictionary<string, IAssetLoader> _loadersBySheet = new Dictionary<string, IAssetLoader>();
 
         private ContainerLayerManager _layerManager;
         private IAssetLoader _assetLoader;
@@ -42,6 +43,24 @@ namespace EnhancedUI
 
         public Sheet ActiveSheet => !string.IsNullOrEmpty(_activeSheetId) ? _sheets[_activeSheetId] : null;
         public int SheetCount => _sheets.Count;
+
+        /// <summary>
+        /// Look up a registered sheet by its identifier. Returns null if no
+        /// sheet with that identifier has been registered.
+        /// </summary>
+        public Sheet GetSheet(string sheetId)
+        {
+            if (string.IsNullOrEmpty(sheetId)) return null;
+            return _sheets.TryGetValue(sheetId, out var sheet) ? sheet : null;
+        }
+
+        /// <summary>
+        /// True if a sheet with the given identifier is registered.
+        /// </summary>
+        public bool HasSheet(string sheetId)
+        {
+            return !string.IsNullOrEmpty(sheetId) && _sheets.ContainsKey(sheetId);
+        }
 
         private void Awake()
         {
@@ -71,13 +90,15 @@ namespace EnhancedUI
                 }
             }
 
-            foreach (var handle in _assetLoadHandles.Values)
+            foreach (var kvp in _assetLoadHandles)
             {
-                _assetLoader.Release(handle);
+                var releaser = _loadersBySheet.TryGetValue(kvp.Key, out var loader) ? loader : _assetLoader;
+                releaser.Release(kvp.Value);
             }
 
             _sheets.Clear();
             _assetLoadHandles.Clear();
+            _loadersBySheet.Clear();
         }
 
         public static SheetContainer Find(string containerName)
@@ -122,10 +143,11 @@ namespace EnhancedUI
                 yield break;
             }
 
-            // Load sheet
+            // Load sheet. Per-call options.Loader wins over the container default.
+            var activeLoader = options.Loader ?? _assetLoader;
             var assetHandle = options.LoadAsync
-                ? _assetLoader.LoadAsync<GameObject>(resourceKey)
-                : _assetLoader.Load<GameObject>(resourceKey);
+                ? activeLoader.LoadAsync<GameObject>(resourceKey)
+                : activeLoader.Load<GameObject>(resourceKey);
 
             yield return assetHandle;
 
@@ -155,6 +177,7 @@ namespace EnhancedUI
 
             _sheets[sheetId] = sheet;
             _assetLoadHandles[sheetId] = assetHandle;
+            _loadersBySheet[sheetId] = activeLoader;
 
             // Callback
             options.OnLoaded?.Invoke(sheet);
@@ -327,8 +350,10 @@ namespace EnhancedUI
 
             if (_assetLoadHandles.TryGetValue(sheetId, out var assetHandle))
             {
-                _assetLoader.Release(assetHandle);
+                var releaser = _loadersBySheet.TryGetValue(sheetId, out var loader) ? loader : _assetLoader;
+                releaser.Release(assetHandle);
                 _assetLoadHandles.Remove(sheetId);
+                _loadersBySheet.Remove(sheetId);
             }
 
             _sheets.Remove(sheetId);

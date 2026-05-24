@@ -1,227 +1,278 @@
-# Getting Started with Enhanced UI Framework
+# Getting Started
 
-## Installation
+Five-minute path from "package installed" to "screen on screen".
 
-### Via Package Manager
-1. Open Unity Package Manager (Window > Package Manager)
-2. Click "+" > Add package from git URL
-3. Enter the repository URL
+> Already added the package? Skip to [step 2](#2-create-the-scene).
+> Want to skip the wizard? Jump to [Editor Setup (Manual)](EditorSetup.md).
 
-### Via Local Package
-1. Clone or download this repository
-2. In Unity, open Package Manager
-3. Click "+" > Add package from disk
-4. Select the `package.json` file
+## 1. Install
 
-## Quick Setup
+Add the **OpenUPM scoped registry** to your project's `Packages/manifest.json` so UPM can pull UniTask (an unavoidable transitive dependency — UPM rejects git URLs inside a package's own deps):
 
-### 1. Run Setup Wizard
+```json
+{
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [ "com.cysharp.unitask" ]
+    }
+  ],
+  "dependencies": {
+    "com.dreamtechex.enhanced-ui-framework": "https://github.com/TeamAcMong/Enhanced-UI-Framework.git#1.1.0"
+  }
+}
 ```
-Tools > Enhanced UI > Setup Wizard
-```
 
-This will:
-- Create EnhancedUISettings asset
-- Create sample PageContainer, ModalContainer, SheetContainer
-- Setup BackButtonHandler for mobile
-- Configure safe area support
+Save the file — Unity will resolve both packages on next refresh. UniTask comes from OpenUPM, Enhanced UI Framework from GitHub. If you'd rather use the UI: **Edit → Project Settings → Package Manager → Scoped Registries → ＋** with name `OpenUPM`, URL `https://package.openupm.com`, scope `com.cysharp.unitask`. Then **Window → Package Manager → ＋ → Add package from git URL** with the framework's URL.
 
-### 2. Create Your First Page
+> If UniTask is missing for any reason, the asmdef's `versionDefines` quietly falls back to `IEnumerator` coroutines — your code keeps compiling. The code samples in these docs assume UniTask is present.
 
-#### Option A: Use Screen Generator
-```
-Tools > Enhanced UI > Generate Screen
-```
-- Enter screen name (e.g., "HomePage")
-- Select "Page" as screen type
-- Check "Generate Presenter" and "Generate ViewState" if using MVP
-- Click Generate
+Addressables and TextMeshPro are optional — install them only when you need them.
 
-#### Option B: Manual Creation
+## 2. Create the scene
 
-**Create the script:**
+Run **Tools → Enhanced UI → Setup Wizard**. It does five things:
+
+1. Creates `Assets/Resources/EnhancedUISettings.asset` (the global config).
+2. Creates a `Canvas` set up for Screen-Space Overlay with a `CanvasScaler` tuned for portrait mobile.
+3. Adds a `SafeArea` RectTransform under it with `SafeAreaAdapter`.
+4. Drops `PageContainer`, `ModalContainer`, and `SheetContainer` under `SafeArea`.
+5. Adds `BackButtonHandler` and `EventSystem`.
+
+Each container has a `Name` field — the wizard sets all three to `"Main"` so `Find("Main")` resolves later.
+
+> If you want to wire it by hand, follow [EditorSetup.md](EditorSetup.md) — it covers the same hierarchy step by step.
+
+## 3. Pick an asset loader
+
+This is the single most important decision and the one that trips people up.
+
+Open `EnhancedUISettings.asset` (or **Tools → Enhanced UI → Settings**), look at the **Asset Loading** section, and choose:
+
+| | When to pick | Where your prefabs go | Key you push with |
+|---|---|---|---|
+| **Resources** | smallest games, fastest start | `Resources/<key>.prefab` | `"<relative-path-without-extension>"` |
+| **Addressables** | larger games, remote delivery | anywhere, mark **Addressable**, set Address | the entry's **Address** |
+| **Custom** | hand-rolled bundle / inspector refs | anywhere your loader can reach | whatever your loader expects |
+
+Full deep dive: [AssetLoading.md](AssetLoading.md).
+
+## 4. Write your first page
+
 ```csharp
-using UnityEngine;
 using EnhancedUI;
+using UnityEngine;
+using UnityEngine.UI;
+
+#if EUI_UNITASK_SUPPORT
+using Cysharp.Threading.Tasks;
+#endif
 
 public class HomePage : Page
 {
-    public override void Initialize()
+    [SerializeField] private Button playButton;
+
+#if EUI_UNITASK_SUPPORT
+    public override async UniTask Initialize()
     {
-        Debug.Log("HomePage initialized");
+        playButton.onClick.AddListener(OnPlayClicked);
+        await base.Initialize();
     }
 
-    public override void DidPushEnter()
+    public override async UniTask Cleanup()
     {
-        Debug.Log("HomePage entered");
+        playButton.onClick.RemoveAllListeners();
+        await base.Cleanup();
     }
+#else
+    public override System.Collections.IEnumerator Initialize()
+    {
+        playButton.onClick.AddListener(OnPlayClicked);
+        yield return base.Initialize();
+    }
+
+    public override System.Collections.IEnumerator Cleanup()
+    {
+        playButton.onClick.RemoveAllListeners();
+        yield return base.Cleanup();
+    }
+#endif
+
+    public override void DidPushEnter() { /* page is fully on-screen */ }
+    public override void WillPopExit()  { /* save state, stop tweens */ }
+
+    private void OnPlayClicked() { /* push the next page */ }
 }
 ```
 
-**Create the prefab:**
-1. Create a GameObject with RectTransform
-2. Add CanvasGroup component
-3. Add your HomePage script
-4. Save as prefab in Resources or mark as Addressable
+### Create the prefab
 
-### 3. Navigate to Your Page
+1. In the scene, **Right-click → UI → Panel**, rename to `HomePage`.
+2. Add Component → `HomePage` and (`CanvasGroup` if not auto-added).
+3. RectTransform: stretch to fill (anchors `(0,0)-(1,1)`, offsets `0,0,0,0`).
+4. Drag the play button into the `playButton` field.
+5. Save as `Assets/Resources/Pages/HomePage.prefab` (for Resources loader) or anywhere you'd like and mark it Addressable with address `HomePage` (for Addressables loader).
+6. **Delete the scene copy** — the container will instantiate it for you.
+
+## 5. Push it
+
+Anywhere in your scene (e.g. on a `Bootstrap` MonoBehaviour's `Start`):
 
 ```csharp
-using UnityEngine;
 using EnhancedUI;
+using UnityEngine;
+#if EUI_UNITASK_SUPPORT
+using Cysharp.Threading.Tasks;
+#endif
 
-public class GameBootstrap : MonoBehaviour
+public class Bootstrap : MonoBehaviour
 {
-    private void Start()
+#if EUI_UNITASK_SUPPORT
+    private async UniTaskVoid Start()
     {
-        var pageContainer = PageContainer.Find("PageContainer");
-
-        // Simple push
-        pageContainer.Push<HomePage>("Prefabs/HomePage", new WindowOptions
-        {
-            PlayAnimation = true,
-            LoadAsync = true
-        });
+        var pages = PageContainer.Find("Main");
+        await pages.Push<HomePage>("Pages/HomePage"); // key matches Resources path or Addressable address
     }
+#else
+    private System.Collections.IEnumerator Start()
+    {
+        var pages = PageContainer.Find("Main");
+        yield return pages.Push<HomePage>("Pages/HomePage");
+    }
+#endif
 }
 ```
 
-## Core Concepts
+Press Play. You should see `HomePage` slide / fade in (depending on the default transition).
 
-### Containers
-Three types of containers for different UI patterns:
+## Core concepts in 60 seconds
 
-- **PageContainer**: Stack-based navigation (Push/Pop)
-- **ModalContainer**: Overlay dialogs with backdrop
-- **SheetContainer**: Tab-like navigation (Show/Hide)
+### Three containers
 
-### Screens
-Three types of screens corresponding to containers:
+| Container | Behavior | Use for |
+|---|---|---|
+| `PageContainer` | LIFO stack with history (`Push` / `Pop`) | full-screen pages, wizards |
+| `ModalContainer` | overlay stack with backdrop | dialogs, popups, confirmations |
+| `SheetContainer` | tab swap with no history (`Register` once, `Show`/`Hide`) | bottom-tab nav, tab panels |
 
-- **Page**: Full-screen pages with history
-- **Modal**: Popup/dialog windows
-- **Sheet**: Tab content without history
+### The lifecycle (`Page` shown — `Modal` is identical)
 
-### Lifecycle Events
-Rich lifecycle for fine-grained control:
+```
+[Loaded]   ─▶ Initialize           // async, do data binding here
+WillPushEnter      ──┐               (next page being shown)
+WillPushExit       ──┘ on the page being pushed off-screen
+DidPushEnter       ──┐ next page is now visible
+DidPushExit        ──┘ pushed-off page is hidden
 
-**Page Lifecycle:**
-- Initialize → WillPushEnter → DidPushEnter → [Active]
-- WillPopExit → DidPopExit → Cleanup → [Destroyed]
+… time passes; user hits Back …
 
-**Going Back:**
-- WillPopEnter → DidPopEnter → [Re-Activated]
+WillPopEnter       ──┐ previous page being brought back
+WillPopExit        ──┘ top page being torn down
+DidPopEnter        ──┐ previous page visible again
+DidPopExit         ──┘ top page hidden
+[Cleanup]          ─▶ Cleanup        // async, release resources
+[Destroyed]
+```
 
-### Transitions
-Flexible animation system:
+Override whichever you need; leave the rest. Sheets have a simpler `WillShow/DidShow/WillHide/DidHide` cycle.
+
+### `WindowOptions`
 
 ```csharp
-// Assign in inspector or create ScriptableObject
-[CreateAssetMenu(menuName = "Enhanced UI/Transition/My Slide")]
-public class MySlideTransition : TransitionAnimationObject
+new WindowOptions
 {
-    public override float Duration => 0.3f;
-
-    public override void Setup(RectTransform rectTransform)
-    {
-        // Setup animation
-    }
-
-    public override void SetTime(float time)
-    {
-        // Update animation at time
-    }
+    LoadAsync      = true,           // false = block until prefab is in memory
+    PlayAnimation  = true,           // false = snap, no transition
+    Stack          = true,           // PageContainer only — false skips history
+    OnLoaded       = screen => { },  // fires after Instantiate, before Initialize
+    Data           = anyObject,      // arbitrary blob; read it in OnLoaded
 }
 ```
 
-## Mobile Features
+Convenience presets: `WindowOptions.Default`, `.WithoutAnimation`, `.WithoutStack`, `.Immediate`.
 
-### Safe Area
-Automatically adapts to notch and home indicator:
+## Common patterns
+
+### Pass data to a screen
 
 ```csharp
-[SerializeField] private SafeAreaAdapter safeAreaAdapter;
+await pages.Push<ShopPage>("Pages/ShopPage", new WindowOptions
+{
+    Data = new ShopArgs { CategoryId = 5 },
+    OnLoaded = screen => ((ShopPage)screen).SetCategory(5),
+});
 ```
 
-Or add SafeAreaAdapter component to your screen root.
+### Preload before the user gets there
 
-### Back Button
-Auto-handling of Android back button:
+```csharp
+var handle = pages.Preload("Pages/BattlePage"); // off the hot path (loading screen, idle)
+// later, push is instant:
+await pages.Push<BattlePage>("Pages/BattlePage");
+// when you no longer expect to return:
+pages.ReleasePreloaded("Pages/BattlePage");
+```
+
+### Show a modal
+
+```csharp
+var modals = ModalContainer.Find("Main");
+await modals.Push<SettingsModal>("Modals/SettingsModal");
+// close it:
+await modals.Pop();
+```
+
+### Pop multiple pages or back to a specific page
+
+```csharp
+await pages.Pop(playAnimation: true, popCount: 3);
+await pages.Pop(playAnimation: true, destinationPageId: "HomePage");
+```
+
+### Tabs with sheets
+
+```csharp
+var sheets = SheetContainer.Find("Main");
+
+// register all four tabs up-front (returns sheet IDs)
+var home      = await sheets.Register<HomeSheet>("Sheets/HomeSheet");
+var battle    = await sheets.Register<BattleSheet>("Sheets/BattleSheet");
+var inventory = await sheets.Register<InventorySheet>("Sheets/InventorySheet");
+var shop      = await sheets.Register<ShopSheet>("Sheets/ShopSheet");
+
+// switch tab
+await sheets.Show(home.Result.Identifier);
+```
+
+### Handle the Android back button
 
 ```csharp
 public class HomePage : Page, IBackButtonReceiver
 {
     public bool OnBackButtonPressed()
     {
-        // Custom back behavior
-        return true; // Handled
+        // return true if you handled it (will not pop), false to let the container Pop
+        return false;
     }
 }
 ```
 
-## Next Steps
-
-- [Architecture Overview](Architecture.md) - Understand the framework structure
-- [Lifecycle System](Lifecycle.md) - Deep dive into lifecycle events
-- [Transitions](Transitions.md) - Create custom animations
-- [MVP Pattern](MVP_Pattern.md) - Use Model-View-Presenter pattern
-- [Mobile Optimization](MobileOptimization.md) - Performance tips
-
-## Common Patterns
-
-### Preloading
-```csharp
-// Preload in advance
-var handle = pageContainer.Preload("Prefabs/ShopPage");
-yield return handle;
-
-// Instant transition (already loaded)
-pageContainer.Push<ShopPage>("Prefabs/ShopPage");
-
-// Release when done
-pageContainer.ReleasePreloaded("Prefabs/ShopPage");
-```
-
-### Passing Data
-```csharp
-pageContainer.Push<ShopPage>("Prefabs/ShopPage", new WindowOptions
-{
-    Data = new ShopData { CategoryId = 5 },
-    OnLoaded = page =>
-    {
-        var shopPage = page as ShopPage;
-        shopPage.SetCategory(5);
-    }
-});
-```
-
-### Pop Multiple Pages
-```csharp
-// Pop 3 pages
-pageContainer.Pop(playAnimation: true, popCount: 3);
-
-// Pop to specific page
-pageContainer.Pop(playAnimation: true, destinationPageId: "HomePage");
-```
-
 ## Troubleshooting
 
-### "Container not found"
-Ensure containers are created via Setup Wizard or manually added to your Canvas.
+| Symptom | Likely cause |
+|---|---|
+| `No Location found for Key=X` | `assetLoaderType = Addressables` but the prefab isn't registered as Addressable with address `X`. See [AssetLoading.md](AssetLoading.md). |
+| `Container not found` | `PageContainer.Find("Main")` but no container in scene has `Name = "Main"`. Setup Wizard sets all three to `"Main"`. |
+| Black screen / pages don't show | Container `RectTransform` doesn't fill its parent, or `CanvasGroup.alpha = 0` on the screen prefab. |
+| Buttons unresponsive | Container `Interactable` is false (the framework toggles this during transitions — check `IsInTransition`). |
+| Text shows as boxes | TextMeshPro essentials not imported: **Window → TextMeshPro → Import TMP Essential Resources**. |
+| `Push` returns immediately, screen never appears | The framework returns an `AsyncProcessHandle`; you forgot to `await` it (or `yield return`). |
 
-### "Asset not found"
-Check that prefabs are in Resources folder or marked as Addressables.
+## Next steps
 
-### "Animation not playing"
-Verify TransitionAnimationObject is assigned in the screen's AnimationContainer.
-
-### Performance issues
-- Enable object pooling in settings
-- Use smart caching for frequently accessed screens
-- Profile with Performance Monitor
-
-## Support
-
-- GitHub Issues: [Link]
-- Forum: [Link]
-- Email: contact@yourstudio.com
+- [Architecture](Architecture.md) — how the pieces fit
+- [Asset Loading](AssetLoading.md) — pick a loader and live with it
+- [Settings Reference](Settings.md) — every inspector field
+- [MVP Pattern](MVP_Pattern.md) — when a screen grows past ~200 lines
+- [Editor Setup (Manual)](EditorSetup.md) — wire it by hand without the wizard

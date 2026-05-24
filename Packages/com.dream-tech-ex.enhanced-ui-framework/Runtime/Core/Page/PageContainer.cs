@@ -25,6 +25,7 @@ namespace EnhancedUI
         private readonly List<string> _orderedPageIds = new List<string>();
         private readonly Dictionary<string, Page> _pages = new Dictionary<string, Page>();
         private readonly Dictionary<string, AssetLoadHandle<GameObject>> _assetLoadHandles = new Dictionary<string, AssetLoadHandle<GameObject>>();
+        private readonly Dictionary<string, IAssetLoader> _loadersByPage = new Dictionary<string, IAssetLoader>();
         private readonly Dictionary<string, AssetLoadHandle<GameObject>> _preloadedHandles = new Dictionary<string, AssetLoadHandle<GameObject>>();
 
         private ContainerLayerManager _layerManager;
@@ -81,10 +82,11 @@ namespace EnhancedUI
                 }
             }
 
-            // Release asset handles
-            foreach (var handle in _assetLoadHandles.Values)
+            // Release asset handles via their original loader (per-page override or container default).
+            foreach (var kvp in _assetLoadHandles)
             {
-                _assetLoader.Release(handle);
+                var releaser = _loadersByPage.TryGetValue(kvp.Key, out var loader) ? loader : _assetLoader;
+                releaser.Release(kvp.Value);
             }
 
             foreach (var handle in _preloadedHandles.Values)
@@ -95,6 +97,7 @@ namespace EnhancedUI
             _pages.Clear();
             _orderedPageIds.Clear();
             _assetLoadHandles.Clear();
+            _loadersByPage.Clear();
             _preloadedHandles.Clear();
         }
 
@@ -145,7 +148,10 @@ namespace EnhancedUI
             _isInTransition = true;
             SetInteractionEnabled(false);
 
-            // Load page
+            // Load page. Per-call options.Loader wins over the container's loader,
+            // letting callers route individual screens into scope-specific loaders
+            // (e.g. ScopeManager-backed) without reconfiguring the container.
+            var activeLoader = options.Loader ?? _assetLoader;
             AssetLoadHandle<GameObject> assetHandle = null;
             if (_preloadedHandles.TryGetValue(resourceKey, out var preloadedHandle))
             {
@@ -155,8 +161,8 @@ namespace EnhancedUI
             else
             {
                 assetHandle = options.LoadAsync
-                    ? _assetLoader.LoadAsync<GameObject>(resourceKey)
-                    : _assetLoader.Load<GameObject>(resourceKey);
+                    ? activeLoader.LoadAsync<GameObject>(resourceKey)
+                    : activeLoader.Load<GameObject>(resourceKey);
 
                 yield return assetHandle;
             }
@@ -192,6 +198,9 @@ namespace EnhancedUI
 
             _pages[pageId] = page;
             _assetLoadHandles[pageId] = assetHandle;
+            // Remember which loader produced the handle so Pop releases via the
+            // same loader (matters when options.Loader was a scope adapter, not _assetLoader).
+            _loadersByPage[pageId] = activeLoader;
 
             // OnLoaded callback
             options.OnLoaded?.Invoke(page);
@@ -380,11 +389,13 @@ namespace EnhancedUI
                     Destroy(page.gameObject);
                 }
 
-                // Release asset
+                // Release asset via the same loader that produced the handle.
                 if (_assetLoadHandles.TryGetValue(pageId, out var assetHandle))
                 {
-                    _assetLoader.Release(assetHandle);
+                    var releaser = _loadersByPage.TryGetValue(pageId, out var loader) ? loader : _assetLoader;
+                    releaser.Release(assetHandle);
                     _assetLoadHandles.Remove(pageId);
+                    _loadersByPage.Remove(pageId);
                 }
 
                 _pages.Remove(pageId);

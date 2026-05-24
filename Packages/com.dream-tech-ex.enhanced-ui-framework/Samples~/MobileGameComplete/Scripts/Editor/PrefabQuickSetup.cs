@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.UI;
 using TMPro;
+using EnhancedUI.Platform.SafeArea;
 
 namespace EnhancedUI.Demo.Editor
 {
@@ -375,7 +376,7 @@ namespace EnhancedUI.Demo.Editor
             // Create SafeArea
             var safeArea = CreateUIElement("Empty", "SafeArea", canvas.transform);
             SetStretchAll(safeArea.GetComponent<RectTransform>());
-            safeArea.AddComponent<Utils.SafeAreaAdapter>();
+            safeArea.AddComponent<SafeAreaAdapter>();
 
             // Create PageContainer
             var pageContainer = CreateUIElement("Empty", "PageContainer", safeArea.transform);

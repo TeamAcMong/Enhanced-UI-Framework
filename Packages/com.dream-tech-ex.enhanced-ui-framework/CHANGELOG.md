@@ -2,6 +2,56 @@
 
 All notable changes to Enhanced UI Framework will be documented in this file.
 
+## [1.2.0] - 2026-05-24 - Per-call loader override + AddressableManager scope bridge
+
+Resolves the design-review gap "can't pin a `Push()` to a specific
+scope". Adds an opt-in bridge for callers that want each screen to
+live in its own `com.game.addressables` scope.
+
+### Added
+- **`WindowOptions.Loader`** field. When set, the container uses this
+  loader for the call instead of its default (`SetAssetLoader` /
+  `AssetLoaderProvider`). Each handle remembers its loader so `Pop`
+  releases through the same one — important when the per-call loader
+  has its own ref-counting (e.g. a scope adapter).
+- **`AddressableManagerScopeAdapter`** — bridges
+  `AddressableManager.Loaders.AssetLoader` into the framework's
+  `IAssetLoader` interface. Compiled only when
+  `com.game.addressables 4.0.0+` is installed (Runtime asmdef
+  versionDefine `ADDRESSABLE_MANAGER_PRESENT`). The asmdef also adds
+  `AddressableManager` to its references; Unity ignores the reference
+  gracefully when the package is absent.
+- **Per-handle loader tracking** in `PageContainer`, `ModalContainer`,
+  and `SheetContainer` (`_loadersByPage` / `_loadersByModal` /
+  `_loadersBySheet`) so the release path uses the same loader that
+  produced the handle. Falls back to the container's `_assetLoader`
+  for legacy handles loaded before this release.
+
+### Usage
+```csharp
+// Once at bootstrap (assuming com.game.addressables is installed)
+using AddressableManager.Managers;
+using EnhancedUI.AssetManagement;
+
+var sessionLoader = ScopeManager.Instance.GetOrCreateScope("Session");
+var sessionBridge = new AddressableManagerScopeAdapter(sessionLoader);
+
+// Per-push
+await pages.Push<BattlePage>("BattlePage", new WindowOptions
+{
+    Loader = sessionBridge
+});
+
+// Later — releases every page that used sessionBridge
+ScopeManager.Instance.ClearScope("Session");
+```
+
+### Notes
+- Backwards-compatible. Existing code (no `options.Loader`) uses the
+  container's default loader exactly as before.
+- The adapter's `Release` is a no-op for non-bridged handles —
+  consumers can't mix-and-match handles across loaders by mistake.
+
 ## [1.1.0] - 2026-05-23
 
 ### Added
