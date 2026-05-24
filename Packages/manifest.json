@@ -10,7 +10,7 @@
   ],
   "dependencies": {
     "com.dreamtech.uicore": "https://github.com/TeamAcMong/unity-ui-core.git#0.7.1",
-    "com.game.addressables": "https://github.com/TeamAcMong/Addressable-System.git#3.5.1",
+    "com.game.addressables": "https://github.com/TeamAcMong/Addressable-System.git#4.0.0",
     "com.cysharp.unitask": "2.5.10",
     "com.harumak.unityuiplayables": "https://github.com/Haruma-K/UnityUIPlayables.git?path=/Assets/UnityUIPlayables",
     "com.neuecc.unirx": "https://github.com/neuecc/UniRx.git?path=Assets/Plugins/UniRx/Scripts",
