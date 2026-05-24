@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using EnhancedUI;
+using EnhancedUI.Demo.Input;
 using System.Collections.Generic;
 
 namespace EnhancedUI.Demo.UI
@@ -14,6 +15,11 @@ namespace EnhancedUI.Demo.UI
     {
         [Header("References")]
         [SerializeField] private SheetContainer sheetContainer;
+
+        [Tooltip("Optional pager. When assigned, button clicks route through " +
+                 "the pager's JumpToTab so click navigation uses the same " +
+                 "snap visuals as a swipe.")]
+        [SerializeField] private SheetSwipePager swipePager;
 
         [Header("Tab Buttons")]
         [SerializeField] private Button homeButton;
@@ -122,14 +128,26 @@ namespace EnhancedUI.Demo.UI
                 return;
             }
 
-            if (sheetContainer.ActiveSheet.Identifier == sheetId)
+            if (sheetContainer.ActiveSheet != null
+                && sheetContainer.ActiveSheet.Identifier == sheetId)
             {
                 Debug.Log($"[BottomTabBar] Already on tab: {sheetId}");
                 return;
             }
 
-            Debug.Log($"[BottomTabBar] Switching to tab: {sheetId}");
-            sheetContainer.Show(sheetId, playAnimation: true);
+            // Prefer pager when present so click uses the same snap visuals
+            // as a finger swipe. Falls back to framework's transition system
+            // when no pager is wired (legacy / standalone tab bar usage).
+            if (swipePager != null)
+            {
+                Debug.Log($"[BottomTabBar] Routing to pager: {sheetId}");
+                swipePager.JumpToTab(sheetId, animate: true);
+            }
+            else
+            {
+                Debug.Log($"[BottomTabBar] Switching to tab via container: {sheetId}");
+                sheetContainer.Show(sheetId, playAnimation: true);
+            }
 
             // Update visual state
             if (updateVisualStates)
@@ -208,20 +226,23 @@ namespace EnhancedUI.Demo.UI
             // Auto-find SheetContainer if not assigned
             if (sheetContainer == null)
             {
-                // Look in parent hierarchy
-                sheetContainer = GetComponentInParent<SheetContainer>();
+                sheetContainer = GetComponentInParent<SheetContainer>()
+                    ?? GetComponentInChildren<SheetContainer>();
                 if (sheetContainer != null)
                 {
-                    Debug.Log("[BottomTabBar] Auto-found SheetContainer in parent");
+                    Debug.Log("[BottomTabBar] Auto-found SheetContainer");
                 }
-                else
+            }
+
+            // Auto-find SheetSwipePager (optional — click falls back to
+            // SheetContainer.Show when no pager is wired).
+            if (swipePager == null)
+            {
+                swipePager = GetComponentInParent<SheetSwipePager>()
+                    ?? GetComponentInChildren<SheetSwipePager>();
+                if (swipePager != null)
                 {
-                    // Look in children
-                    sheetContainer = GetComponentInChildren<SheetContainer>();
-                    if (sheetContainer != null)
-                    {
-                        Debug.Log("[BottomTabBar] Auto-found SheetContainer in children");
-                    }
+                    Debug.Log("[BottomTabBar] Auto-found SheetSwipePager");
                 }
             }
         }

@@ -1,6 +1,8 @@
 # MVP Pattern Implementation Guide
 
-This guide explains how to implement screens using the MVP (Model-View-Presenter) pattern in the Enhanced UI Framework demo.
+How to structure screens using the **Model-View-Presenter** pattern with Enhanced UI Framework.
+
+> The bundled **Mobile Game — Complete** sample uses this pattern end-to-end. Code in this doc is illustrative and references a sample-style `GameState`/`PlayerData` singleton; in your own game, replace those with your data layer of choice.
 
 ## 🎯 Why MVP?
 
@@ -31,11 +33,12 @@ The MVP pattern provides:
 ## 📋 File Structure for Each Screen
 
 ```
-Assets/Demo/Screens/ExampleScreen/
-├── ExampleScreenModel.cs          # Data container
-├── ExampleScreenView.cs           # UI logic
-├── ExampleScreenPresenter.cs      # Business logic
-└── prefab_example_screen.prefab   # Prefab with View attached
+Assets/MyGame/Screens/ExampleScreen/
+├── ExampleScreen.cs               # extends Page/Modal/Sheet, wires MVP
+├── ExampleScreenModel.cs          # Data container (POCO)
+├── ExampleScreenView.cs           # UI logic (MonoBehaviour)
+├── ExampleScreenPresenter.cs      # Business logic (plain C#)
+└── ExampleScreen.prefab           # Prefab with the Screen + View components attached
 ```
 
 ## 🔨 Implementation Steps
@@ -465,9 +468,15 @@ public void TestActionButton_WithItems_ShouldIncreaseGold()
 ## 📚 Additional Resources
 
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-- [MVP Pattern](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93presenter)
+- [MVP Pattern (Wikipedia)](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93presenter)
 - [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
+
+## See also
+
+- [Getting Started](GettingStarted.md) — Page basics before adding MVP on top
+- [Architecture](Architecture.md) — Where the pattern fits in the framework
+- The **Mobile Game — Complete** sample (`Samples~/MobileGameComplete/Scripts/Screens/`) — every screen demonstrates this pattern
 
 ---
 
-**Remember**: Keep it simple, separate concerns, and let each component do one thing well!
+**Remember**: Keep it simple, separate concerns, and let each component do one thing well.

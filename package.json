@@ -1,8 +1,8 @@
 {
   "name": "com.dreamtechex.enhanced-ui-framework",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "displayName": "Enhanced UI Framework",
-  "description": "Mobile-optimized UI navigation framework for Unity. Container–Screen architecture with Page (stack), Modal (overlay) and Sheet (tabs); rich lifecycle hooks, partner-aware transitions, pluggable asset loaders (Resources / Addressables / Remote), object pooling, safe-area + back-button + orientation support, and an optional MVP layer. UniTask-powered async with coroutine fallback.",
+  "description": "Mobile-optimized UI navigation framework for Unity. Container\u2013Screen architecture with Page (stack), Modal (overlay) and Sheet (tabs); rich lifecycle hooks, partner-aware transitions, pluggable asset loaders (Resources / Addressables / Remote), object pooling, safe-area + back-button + orientation support, and an optional MVP layer. UniTask-powered async with coroutine fallback.",
   "unity": "2022.3",
   "keywords": [
     "ui",
@@ -18,15 +18,16 @@
     "unitask"
   ],
   "author": {
-    "name": "DreamTech"
+    "name": "DreamTech",
+    "email": "dev.game.dreamtech@gmail.com"
   },
   "dependencies": {
     "com.unity.ugui": "1.0.0",
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
+    "com.cysharp.unitask": "2.5.10"
   },
   "samples": [
     {
-      "displayName": "Mobile Game — Complete",
+      "displayName": "Mobile Game \u2014 Complete",
       "description": "Lobby with bottom-tab sheets, modal settings, gameplay/level-selection pages, and full MVP wiring.",
       "path": "Samples~/MobileGameComplete"
     }

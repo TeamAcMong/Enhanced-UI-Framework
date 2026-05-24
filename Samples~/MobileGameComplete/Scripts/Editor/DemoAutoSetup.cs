@@ -97,7 +97,7 @@ namespace EnhancedUI.Demo.Editor
             Debug.Log("[DemoAutoSetup] ✓ FULL demo scene created successfully!");
             Debug.Log("[DemoAutoSetup] Scene saved to: " + DEMO_SCENE_PATH);
             Debug.Log("[DemoAutoSetup] Prefabs created:");
-            Debug.Log("  ✓ HomeContainer.prefab (with BottomTabBar + SwipeDetector)");
+            Debug.Log("  ✓ HomeContainer.prefab (with BottomTabBar + SheetSwipePager)");
             Debug.Log("  ✓ HomeSheet.prefab (with slide animation)");
             Debug.Log("  ✓ BattleSheet.prefab (with slide animation)");
             Debug.Log("  ✓ InventorySheet.prefab (with slide animation)");
@@ -794,21 +794,20 @@ namespace EnhancedUI.Demo.Editor
         }
 
         /// <summary>
-        /// Create SwipeDetector for horizontal swipe gestures
+        /// Create SheetSwipePager for drag-to-follow + snap-to-page tab
+        /// navigation. The pager is parented to the SheetContainer's
+        /// GameObject so its (auto-added) transparent Image covers the
+        /// swipe area exactly.
         /// </summary>
-        private static SwipeDetector CreateSwipeDetector(Transform parent, SheetContainer sheetContainer)
+        private static SheetSwipePager CreateSwipePager(SheetContainer sheetContainer)
         {
-            var swipeDetectorGO = new GameObject("SwipeDetector");
-            swipeDetectorGO.transform.SetParent(parent, false);
+            // Place the pager on the SheetContainer itself: it adds a
+            // transparent Image so the EventSystem can raycast drag events.
+            var pager = sheetContainer.gameObject.AddComponent<SheetSwipePager>();
 
-            var swipeDetector = swipeDetectorGO.AddComponent<SwipeDetector>();
+            SetPrivateField(pager, "sheetContainer", sheetContainer);
 
-            // Use reflection to set private serialized fields
-            SetPrivateField(swipeDetector, "sheetContainer", sheetContainer);
-            SetPrivateField(swipeDetector, "swipeThreshold", 50f);
-            SetPrivateField(swipeDetector, "maxSwipeTime", 1f);
-
-            // Set tab sheet IDs
+            // Default tab strip — keep in sync with HomeContainerPage.
             var tabSheetIds = new System.Collections.Generic.List<string>
             {
                 ScreenKeys.HomeSheet,
@@ -816,12 +815,24 @@ namespace EnhancedUI.Demo.Editor
                 ScreenKeys.InventorySheet,
                 ScreenKeys.ShopSheet
             };
-            SetPrivateField(swipeDetector, "tabSheetIds", tabSheetIds);
+            SetPrivateField(pager, "tabSheetIds", tabSheetIds);
 
-            EditorUtility.SetDirty(swipeDetector);
+            // Sensible defaults for portrait mobile lobby (matches doc).
+            SetPrivateField(pager, "followRatio", 1f);
+            SetPrivateField(pager, "edgeResistance", 0.4f);
+            SetPrivateField(pager, "axisLockThreshold", 10f);
+            SetPrivateField(pager, "positionThreshold", 0.25f);
+            SetPrivateField(pager, "velocityThreshold", 800f);
+            SetPrivateField(pager, "snapDuration", 0.3f);
+            SetPrivateField(pager, "snapEase", EnhancedUI.Transition.EaseType.QuarticEaseOut);
+            SetPrivateField(pager, "allowFlickSkip", false);
+            SetPrivateField(pager, "disableDuringFrameworkTransition", true);
+            SetPrivateField(pager, "wrapAround", false);
 
-            Debug.Log("[DemoAutoSetup] Created SwipeDetector");
-            return swipeDetector;
+            EditorUtility.SetDirty(pager);
+
+            Debug.Log("[DemoAutoSetup] Created SheetSwipePager on SheetContainer");
+            return pager;
         }
 
         /// <summary>
@@ -1098,11 +1109,15 @@ namespace EnhancedUI.Demo.Editor
             // Create SheetContainer child
             var sheetContainer = CreateSheetContainer(homeContainerGO.transform);
 
-            // Create BottomTabBar with buttons
-            var bottomTabBar = CreateBottomTabBar(homeContainerGO.transform, sheetContainer);
+            // Create SheetSwipePager (attaches to SheetContainer GO and
+            // adds a transparent Image as raycast target).
+            var swipePager = CreateSwipePager(sheetContainer);
 
-            // Create SwipeDetector
-            var swipeDetector = CreateSwipeDetector(homeContainerGO.transform, sheetContainer);
+            // Create BottomTabBar with buttons, wired to the pager so
+            // click navigation matches swipe visuals.
+            var bottomTabBar = CreateBottomTabBar(homeContainerGO.transform, sheetContainer);
+            SetPrivateField(bottomTabBar, "swipePager", swipePager);
+            EditorUtility.SetDirty(bottomTabBar);
 
             // Use reflection to set tabContainer reference on HomeContainerPage
             SetPrivateField(homeContainerPage, "tabContainer", sheetContainer);
@@ -1139,7 +1154,7 @@ namespace EnhancedUI.Demo.Editor
                 Debug.Log("  - HomeContainerPage component");
                 Debug.Log("  - SheetContainer for 4 tabs");
                 Debug.Log("  - BottomTabBar with 4 buttons (Home, Battle, Inventory, Shop)");
-                Debug.Log("  - SwipeDetector for horizontal swipe navigation");
+                Debug.Log("  - SheetSwipePager (drag-to-follow + snap) on the SheetContainer");
             }
             else
             {
